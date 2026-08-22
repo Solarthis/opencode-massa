@@ -1,7 +1,7 @@
 {
   "name": "opencode-massa",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "description": "Claude Code orchestrates OpenCode worker agents: dynamic model routing, parallel-write safety, independent verification and read-only review.",
   "type": "module",
   "bin": {
@@ -25,5 +25,9 @@
   "devDependencies": {
     "@types/node": "^22.10.0",
     "typescript": "^5.7.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Solarthis/opencode-massa.git"
   }
 }
