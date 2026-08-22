@@ -2,7 +2,7 @@
 
 Claude Code as engineering lead; [OpenCode](https://opencode.ai) agents as the workforce.
 
-You type `/massa <task>` in Claude Code. Claude decides what needs doing, delegates the
+You type `/slave <task>` in Claude Code. Claude decides what needs doing, delegates the
 token-heavy repository work to OpenCode workers, verifies the result itself, has it
 independently reviewed, and only reports completion when the evidence supports it.
 
@@ -29,7 +29,7 @@ run by Massa, in the project directory, independently of whatever the worker rep
   You
    |
    v
-  Claude Code  --  /massa <task>
+  Claude Code  --  /slave <task>
    |
    v
   Claude (engineering lead)
@@ -82,7 +82,7 @@ add paid providers — Massa picks them up automatically, no config change neede
 ## Installation
 
 ```bash
-git clone <this-repo> ~/massa && cd ~/massa
+git clone https://github.com/Solarthis/opencode-massa.git ~/massa && cd ~/massa
 npm install && npm run build
 npm test          # 64 unit + integration tests (mocked OpenCode)
 npm run smoke     # real end-to-end run against your OpenCode install
@@ -92,7 +92,7 @@ npm run mcp-e2e   # drives the MCP server over stdio, exactly as Claude Code doe
 Install the command and register the MCP server:
 
 ```bash
-cp command/massa.md ~/.claude/commands/massa.md
+cp command/slave.md ~/.claude/commands/slave.md
 ```
 
 Then add to `~/.claude.json` under `mcpServers`:
@@ -105,21 +105,21 @@ Then add to `~/.claude.json` under `mcpServers`:
 }
 ```
 
-Restart Claude Code. `/massa` and the `massa_*` tools should now be available.
+Restart Claude Code. `/slave` and the `massa_*` tools should now be available.
 
 ---
 
 ## Usage
 
 ```
-/massa fix the mobile reservations table
-/massa build the reporting module described in PROJECT_GOAL.md
-/massa find and fix why these tests are failing
-/massa audit what the previous agent implemented
-/massa continue
+/slave fix the mobile reservations table
+/slave build the reporting module described in PROJECT_GOAL.md
+/slave find and fix why these tests are failing
+/slave audit what the previous agent implemented
+/slave continue
 ```
 
-Plain `/massa <task>` is the normal interface. You never have to choose a model, a role, an
+Plain `/slave <task>` is the normal interface. You never have to choose a model, a role, an
 agent count or an iteration budget.
 
 Optional modifiers: `--quick` (force the tiny route), `--deep` (force the complex route),
@@ -189,7 +189,7 @@ is reused rather than picking a worse reviewer for the sake of difference.
 task. When all are exhausted the worker fails loudly with the models attempted — Massa never
 silently hands the work back to Claude.
 
-Run `/massa --models` to see the current catalog and routing table.
+Run `/slave --models` to see the current catalog and routing table.
 
 ---
 
@@ -246,7 +246,7 @@ checks, unpassing criteria, a `changes_required` review, or a failed worker.
 ```
 
 `.massa/` is operational state, added to `.gitignore` automatically. OpenCode session IDs
-are persisted, so `/massa continue` survives a Claude restart, a terminal restart, an
+are persisted, so `/slave continue` survives a Claude restart, a terminal restart, an
 OpenCode restart, and a reboot.
 
 Detail lives on disk; Claude receives compact summaries. Worker reports are truncated and
@@ -292,7 +292,7 @@ Six, deliberately — every schema costs Claude context on every turn.
 
 ## Troubleshooting
 
-**`/massa` not found** — confirm `~/.claude/commands/massa.md` exists and restart Claude Code.
+**`/slave` not found** — confirm `~/.claude/commands/slave.md` exists and restart Claude Code.
 
 **"No OpenCode models available"** — run `opencode models`. Empty means no provider is
 reachable; `opencode auth login` adds one. The free `opencode/*` tier needs network access
@@ -336,7 +336,7 @@ The scopes overlapped; give the builders genuinely disjoint ownership or seriali
 ## Uninstall
 
 ```bash
-rm ~/.claude/commands/massa.md                 # remove the command
+rm ~/.claude/commands/slave.md                 # remove the command
 # remove the "opencode-massa" entry from ~/.claude.json mcpServers
 rm -rf ~/.massa                                # server portfile and logs
 rm -rf ~/massa                                 # this repository
@@ -350,7 +350,7 @@ operational state only.
 ## Relationship to codex-massa
 
 [codex-massa](https://github.com/Solarthis/codex-massa) is untouched and still works via
-`/massa-codex`. The two share concepts — a machine-checkable goal, persisted run state,
+its own `/massa` command. The two share concepts — a machine-checkable goal, persisted run state,
 independent verification, safety guards, quick-vs-build routing — but no code.
 
 The genuinely generic parts (destructive-operation guards, secret redaction, verification
