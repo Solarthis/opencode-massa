@@ -84,8 +84,9 @@ add paid providers — Massa picks them up automatically, no config change neede
 ```bash
 git clone <this-repo> ~/massa && cd ~/massa
 npm install && npm run build
-npm test          # unit + integration suite
+npm test          # 64 unit + integration tests (mocked OpenCode)
 npm run smoke     # real end-to-end run against your OpenCode install
+npm run mcp-e2e   # drives the MCP server over stdio, exactly as Claude Code does
 ```
 
 Install the command and register the MCP server:
@@ -312,6 +313,25 @@ review and worktree isolation both need git.
 
 **Merge conflict on an isolated builder** — the merge is aborted and the repo left clean.
 The scopes overlapped; give the builders genuinely disjoint ownership or serialize them.
+
+## Known limitations
+
+- **Free models are variable.** A weak builder sometimes narrates a fix it never
+  applied. Massa treats a writing worker that changed no files as a failure, and
+  verification catches the rest — but expect the correction loop to run more often
+  on the free tier than with a paid provider.
+- **Speed is a proxy, not a measurement.** No catalog publishes latency, so the
+  router infers speed from the output-token ceiling plus a name hint. It only ever
+  breaks ties.
+- **`toolsUsed` costs one extra local request.** OpenCode omits tool parts from the
+  synchronous prompt response, so Massa reads the session message list afterwards.
+- **Massa's own `.gitignore` edit appears in the reviewed diff** and reviewers
+  occasionally flag it as scope creep. Hiding Massa's edits from the reviewer would
+  be worse, so it is left visible.
+- **Worktree isolation needs a clean-ish HEAD.** Branches are cut from `HEAD`, so an
+  isolated builder does not see uncommitted changes in the main tree.
+- **No cross-run scheduling.** Massa runs one plan at a time per repository; Claude
+  drives the loop rather than a background daemon.
 
 ## Uninstall
 

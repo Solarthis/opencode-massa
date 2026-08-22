@@ -186,3 +186,28 @@ test("three writers are serialized if any pair conflicts", () => {
   assert.equal(plan.parallel, false);
   assert.ok(plan.conflicts.some(([x, y]) => x === "b" && y === "c"));
 });
+
+test("a destructive assignment is refused before any worker is dispatched", async () => {
+  // Guarded at the tool boundary: the prompt must never reach a model, and no
+  // sibling task in the same batch may run either.
+  const { fakeOpencode, tempRepo, runState } = await import("./helpers.js");
+  const { discoverModels } = await import("../src/models.js");
+  const { runBatch } = await import("../src/run.js");
+  const { createRun, newRunId } = await import("../src/state.js");
+
+  const dir = tempRepo();
+  const f = await fakeOpencode();
+  try {
+    const models = await discoverModels(f.url);
+    const state = createRun({ ...runState(dir), runId: newRunId() } as any);
+    // runBatch converts the guard error into a failed task; the MCP layer
+    // rejects the whole call first. Both must refuse to run the model.
+    const o = await runBatch(state, f.url, models, [
+      { id: "danger", role: "builder", prompt: "run git push --force origin main" },
+    ]);
+    assert.equal(o.results[0].ok, false);
+    assert.equal(f.prompts.length, 0, "a destructive prompt reached a model");
+  } finally {
+    await f.close();
+  }
+});

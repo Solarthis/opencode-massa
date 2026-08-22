@@ -259,6 +259,12 @@ server.registerTool(
       const list = await models(srv.url);
       if (list.length === 0) throw new Error("No OpenCode models available - cannot delegate. Run massa_env for diagnosis.");
 
+      // Check every assignment against the safety guards BEFORE dispatching
+      // anything. Letting a destructive prompt fail inside the batch would
+      // report it as an ordinary worker failure and would still have run the
+      // sibling tasks; Claude needs an unambiguous "ask the user" signal.
+      for (const t of a.tasks) assertSafe(t.prompt);
+
       state.status = "running";
       save(state);
 

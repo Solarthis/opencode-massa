@@ -4,14 +4,19 @@
   "private": true,
   "description": "Claude Code orchestrates OpenCode worker agents: dynamic model routing, parallel-write safety, independent verification and read-only review.",
   "type": "module",
-  "bin": { "opencode-massa": "dist/src/mcp.js" },
+  "bin": {
+    "opencode-massa": "dist/src/mcp.js"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "clean": "rm -rf dist",
     "test": "npm run build && node --test dist/test/*.test.js",
-    "smoke": "npm run build && node dist/test/smoke.js"
+    "smoke": "npm run build && node dist/test/smoke.js",
+    "mcp-e2e": "npm run build && node dist/test/mcp-e2e.js"
   },
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
