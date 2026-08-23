@@ -100,12 +100,17 @@ Then add to `~/.claude.json` under `mcpServers`:
 ```json
 "opencode-massa": {
   "type": "stdio",
-  "command": "node",
+  "command": "/absolute/path/to/node",
   "args": ["/Users/you/massa/dist/src/mcp.js"]
 }
 ```
 
-Restart Claude Code. `/slave` and the `massa_*` tools should now be available.
+Use an **absolute** path to `node` (`which node`). A bare `"node"` relies on Claude Code's
+own `PATH` finding your interpreter, which fails under nvm, asdf and similar version
+managers.
+
+Restart Claude Code — MCP servers are only loaded at startup, so `/slave` and the
+`massa_*` tools will not appear until you do.
 
 ---
 
@@ -293,6 +298,11 @@ Six, deliberately — every schema costs Claude context on every turn.
 ## Troubleshooting
 
 **`/slave` not found** — confirm `~/.claude/commands/slave.md` exists and restart Claude Code.
+
+**`/slave` runs but the `massa_*` tools are missing** — the command is a plain file and is
+picked up immediately; the MCP server is only loaded at startup. Restart Claude Code. If the
+tools are still absent afterwards, check the `command` path in `~/.claude.json` is an
+absolute `node` binary that exists.
 
 **"No OpenCode models available"** — run `opencode models`. Empty means no provider is
 reachable; `opencode auth login` adds one. The free `opencode/*` tier needs network access
