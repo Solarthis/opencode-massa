@@ -50,7 +50,7 @@ export function discoverCommands(dir: string): Candidate[] {
     ["test", "test"], ["typecheck", "typecheck"], ["type-check", "typecheck"],
     ["lint", "lint"], ["build", "build"], ["check", "lint"],
   ] as const) {
-    if (scripts[name]) add(`${runner} ${name}`, kind, "package.json scripts");
+    if (typeof scripts[name] === "string" && scripts[name].trim()) add(`${runner} ${name}`, kind, "package.json scripts");
   }
 
   // Python
@@ -105,6 +105,10 @@ export interface ExecResult {
 
 /** Run one command in the project directory. Output is redacted and truncated. */
 export function execCommand(command: string, cwd: string, timeoutMs = 600_000, tailChars = 4000): Promise<ExecResult> {
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 2_147_483_647 ||
+      !Number.isInteger(tailChars) || tailChars < 0 || tailChars > 200_000) {
+    return Promise.resolve({ command, exitCode: -1, passed: false, stdout: "", stderr: "Invalid verification limits.", durationMs: 0, timedOut: false });
+  }
   const hits = scanDestructive(command);
   if (hits.length) {
     return Promise.resolve({
@@ -120,26 +124,44 @@ export function execCommand(command: string, cwd: string, timeoutMs = 600_000, t
 
   return new Promise((resolve) => {
     const started = Date.now();
-    const child = spawn("sh", ["-lc", command], { cwd, env: { ...process.env, CI: "1", NO_COLOR: "1" } });
+    const grouped = process.platform !== "win32";
+    const child = spawn("sh", ["-lc", command], { cwd, detached: grouped, env: { ...process.env, CI: "1", NO_COLOR: "1" } });
     let out = "";
     let err = "";
+    let outOverflow = false;
+    let errOverflow = false;
     let timedOut = false;
-    const cap = (s: string, chunk: string) => (s.length > 200_000 ? s : s + chunk);
-    child.stdout.on("data", (d) => (out = cap(out, d.toString())));
-    child.stderr.on("data", (d) => (err = cap(err, d.toString())));
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (d: string) => {
+      if (outOverflow) return;
+      if (out.length + d.length > 200_000) { out = ""; outOverflow = true; } else out += d;
+    });
+    child.stderr.on("data", (d: string) => {
+      if (errOverflow) return;
+      if (err.length + d.length > 200_000) { err = ""; errOverflow = true; } else err += d;
+    });
     const timer = setTimeout(() => {
       timedOut = true;
-      child.kill("SIGKILL");
+      try {
+        if (grouped && child.pid) process.kill(-child.pid, "SIGKILL");
+        else child.kill("SIGKILL");
+      } catch { child.kill("SIGKILL"); }
     }, timeoutMs);
     child.on("close", (code) => {
       clearTimeout(timer);
-      const tail = (s: string) => redact(s.length > tailChars ? "...\n" + s.slice(-tailChars) : s).text;
+      const tail = (s: string, overflow: boolean) => {
+        if (overflow) return "[Output omitted: capture limit exceeded.]";
+        const safe = redact(s).text;
+        if (tailChars === 0) return "";
+        return safe.length > tailChars ? "...\n" + safe.slice(-tailChars) : safe;
+      };
       resolve({
         command,
         exitCode: code ?? -1,
         passed: code === 0 && !timedOut,
-        stdout: tail(out),
-        stderr: tail(err),
+        stdout: tail(out, outOverflow),
+        stderr: tail(err, errOverflow),
         durationMs: Date.now() - started,
         timedOut,
       });
